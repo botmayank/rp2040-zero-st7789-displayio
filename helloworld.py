@@ -1,10 +1,3 @@
-# SPDX-FileCopyrightText: 2023 botmayank
-# SPDX-License-Identifier: MIT
-
-"""
-Display an in memory bitmap on the display
-"""
-
 import board
 import time
 import busio
@@ -13,9 +6,6 @@ import terminalio
 import neopixel
 from adafruit_display_text import label
 from adafruit_st7789 import ST7789
-
-IMAGE_PATHS = ["images/nvidia.bmp", "images/ryzen.bmp", "images/traces.bmp"]
-TIME_BETWEEN_IMAGES = 1
 
 # Onboard neopixel LED
 # Note, order is GRB not RGB for wiring
@@ -67,26 +57,44 @@ display = ST7789(
 
 print("Let's get this display started!")
 
+# Make the display context
+splash = displayio.Group()
+display.show(splash)
+
+color_bitmap = displayio.Bitmap(display.width, display.height, 1)
+color_palette = displayio.Palette(1)
+color_palette[0] = BACKGROUND_COLOR
+
+bg_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
+splash.append(bg_sprite)
+
+# Draw a smaller inner rectangle
+inner_bitmap = displayio.Bitmap(
+    display.width - BORDER * 2, display.height - BORDER * 2, 1
+)
+inner_palette = displayio.Palette(1)
+inner_palette[0] = FOREGROUND_COLOR
+inner_sprite = displayio.TileGrid(
+    inner_bitmap, pixel_shader=inner_palette, x=BORDER, y=BORDER
+)
+splash.append(inner_sprite)
+
+
+# Draw a label
+text = "Hello World!"
+text_area = label.Label(terminalio.FONT, text=text, color=TEXT_COLOR)
+text_width = text_area.bounding_box[2] * FONTSCALE
+text_group = displayio.Group(
+    scale=FONTSCALE,
+    x=display.width // 2 - text_width // 2,
+    y=display.height // 2,
+)
+text_group.append(text_area)  # Subgroup for text scaling
+splash.append(text_group)
+
+
 while True:
     pixels[0] = RED
     time.sleep(0.5)
     pixels[0] = GREEN
     time.sleep(0.5)
-    
-    for image in IMAGE_PATHS:
-        bitmap = displayio.OnDiskBitmap(image)
-
-        # Create a TileGrid to hold the bitmap
-        tile_grid = displayio.TileGrid(bitmap, pixel_shader=bitmap.pixel_shader)
-
-        # Create a Group to hold the TileGrid
-        group = displayio.Group()
-
-        # Add the TileGrid to the Group
-        group.append(tile_grid)
-
-        # Add the Group to the Display
-        display.show(group)
-        
-        time.sleep(TIME_BETWEEN_IMAGES)
-
